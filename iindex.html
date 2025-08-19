@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Water Level Monitor</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyA1ARR3AbTpPXZ5YD4yY9RvgDAFtux5OzY",
+      authDomain: "water-level-3c52a.firebaseapp.com",
+      databaseURL: "https://water-level-3c52a-default-rtdb.firebaseio.com",
+      projectId: "water-level-3c52a",
+      storageBucket: "water-level-3c52a.firebasestorage.app",
+      messagingSenderId: "975946187055",
+      appId: "1:975946187055:web:e3914a13661bfc08cc21da",
+      measurementId: "G-PXKHH32NY0"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Water level %
+    const levelRef = ref(db, "/water/percent");
+    onValue(levelRef, (snapshot) => {
+      const val = snapshot.val();
+      document.getElementById("level").innerText = val + " %";
+      document.getElementById("levelBarFill").style.width = val + "%";
+    });
+
+    // Motor state
+    const motorRef = ref(db, "/motor/state");
+    onValue(motorRef, (snapshot) => {
+      if (snapshot.exists()) {
+        document.getElementById("motor").innerText = snapshot.val() == 1 ? "ON" : "OFF";
+      }
+    });
+
+    // Dry run status
+    const dryRunRef = ref(db, "/dryRun");
+    onValue(dryRunRef, (snapshot) => {
+      if (snapshot.exists()) {
+        document.getElementById("dryrun").innerText = snapshot.val();
+      }
+    });
+
+    // Sensors
+    ["20","40","60","80","100"].forEach(level => {
+      const sensorRef = ref(db, "/water/sensors/" + level);
+      onValue(sensorRef, (snapshot) => {
+        let el = document.getElementById("s" + level);
+        if (snapshot.exists() && snapshot.val() === "ON") {
+          el.innerText = "🟩 " + level + "%";
+        } else {
+          el.innerText = "🟥 " + level + "%";
+        }
+      });
+    });
+
+    // Motor control
+    window.setMotor = function(state) {
+      set(ref(db, "/control/manual"), true);
+      set(ref(db, "/control/motor_set"), state);
+    };
+  </script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin-top: 30px; }
+    .sensor { display: inline-block; margin: 5px; padding: 10px; font-size: 18px; width: 70px; border-radius: 8px; }
+    .level-bar { width: 80%; height: 30px; background-color: #ddd; border-radius: 8px; margin: 10px auto; }
+    .level-bar-fill { height: 100%; width: 0%; background-color: #4CAF50; border-radius: 8px; transition: width 0.5s; }
+  </style>
+</head>
+<body>
+  <h2>💧 Water Level Monitoring</h2>
+  <p>Water Level: <span id="level">0 %</span></p>
+  <div class="level-bar">
+    <div id="levelBarFill" class="level-bar-fill"></div>
+  </div>
+
+  <p>Motor: <span id="motor">--</span></p>
+  <p>Dry Run: <span id="dryrun">--</span></p>
+
+  <h3>Sensor indicators</h3>
+  <div id="s20" class="sensor">🟥 20%</div>
+  <div id="s40" class="sensor">🟥 40%</div>
+  <div id="s60" class="sensor">🟥 60%</div>
+  <div id="s80" class="sensor">🟥 80%</div>
+  <div id="s100" class="sensor">🟥 100%</div>
+
+  <h3>Motor Control</h3>
+  <button onclick="setMotor(1)">Motor ON</button>
+  <button onclick="setMotor(0)">Motor OFF</button>
+</body>
+</html>
